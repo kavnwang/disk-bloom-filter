@@ -9,5 +9,3 @@ With more time, I would consider leveraging the L1 cache and computing index bit
 To run: 
 g++ -std=c++11 test.cpp filter.cpp file-handler.cpp MurmurHash3.cpp -o test
 ./test
-
-g++ -std=c++11 -I/opt/anaconda3/lib/python3.10/site-packages/pybind11/include python/bindings.cpp -o PythonBindings
