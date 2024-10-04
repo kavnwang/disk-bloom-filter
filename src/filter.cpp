@@ -4,6 +4,7 @@
 #include <fstream>
 #include <vector>
 #include "file-handler.cpp"
+#include <thread>
 
 using namespace std;
 
@@ -22,7 +23,6 @@ class BloomFilter
             this->filter_count = ceil(this->size / FILTER_SIZE);
             this->element_count = 0;
             this->file_handler = new FileHandler(filename, size);
-            //cout << size << endl;
             this->filter_hash = rand();
             for (int i = 0; i < this->hash_count; i++) {
                 uint32_t hash = rand();
@@ -48,22 +48,6 @@ class BloomFilter
             return file_handler->Read(filter_num, filter_size, filter_count, indexes);
         };
 
-        uint32_t GetFilter(string key) {
-            uint32_t hash;
-            MurmurHash3_x86_32(key.c_str(), key.length(), this->filter_hash, &hash);
-            uint64_t filter_num = hash % this->filter_count;
-            return filter_num;
-        }
-        vector<uint32_t> GetIndexes(string key) {
-            vector<uint32_t> indexes;
-            for(int i = 0; i<this->hash_count; i++) {
-                uint32_t index_hash;
-                MurmurHash3_x86_32(key.c_str(), key.length(), this->hashes[i], &index_hash);
-                uint32_t index = index_hash % this->filter_size;
-                indexes.push_back(index);
-            }
-            return indexes;
-        }
         uint64_t Size()
         {
             return this->size;
@@ -88,4 +72,34 @@ class BloomFilter
         FileHandler* file_handler;
         vector<uint32_t> hashes;
         uint32_t filter_hash;
+        mutex mtx;
+        uint32_t GetFilter(string key) 
+        {
+            uint32_t hash;
+            MurmurHash3_x86_32(key.c_str(), key.length(), this->filter_hash, &hash);
+            uint64_t filter_num = hash % this->filter_count;
+            return filter_num;
+        }
+        vector<uint32_t> HashIndex(string key) 
+        {
+            
+        }
+        vector<uint32_t> GetIndexes(string key) 
+        {
+            vector<thread> threads;
+            vector<uint32_t> indexes;
+            for (int i = 0; i < this->hash_count; i++) {
+                threads.emplace_back([&, i]() {
+                    uint32_t index_hash;
+                    MurmurHash3_x86_32(key.c_str(), key.length(), this->hashes[i], &index_hash);
+                    uint32_t index = index_hash % this->filter_size;
+                    indexes.push_back(index);
+                });
+            }
+            for (int i = 0;i<threads.size();i++) {
+                threads[i].join();
+            }
+            return indexes;
+        }
+
 };
